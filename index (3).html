@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SkyCast — World Weather</title>
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;800&family=Nunito:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+  <!-- SkyCast Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav>
+  <div class="logo" onclick="showHome()">Sky<span>Cast</span></div>
+  <div class="nav-right">
+    <button class="compare-nav-btn" id="compare-nav-btn" onclick="showComparePage()"> Compare Cities</button>
+    <button class="favs-nav-btn" id="favs-nav-btn" onclick="showFavsPage()"> Favourites</button>
+    <div class="nav-tag">World Weather</div>
+  </div>
+</nav>
+
+<!-- PAGE 1: HOME -->
+<div class="page" id="home">
+  <div id="map"></div>
+  <div class="search-wrapper">
+    <h1 class="search-headline">Explore <em>weather</em><br>anywhere on Earth</h1>
+    <button class="loc-btn" id="loc-btn" onclick="useMyLocation()">
+      <div class="loc-icon-wrap"></div>
+      <div>
+        <span class="loc-text-main">Use my current location</span>
+        <span class="loc-text-sub">Allow access to get your local forecast</span>
+      </div>
+    </button>
+    <div class="search-box" id="search-box" style="margin-top:12px">
+      <span class="search-icon"></span>
+      <input type="text" id="search-input" placeholder="Search for a city, town or area…" autocomplete="off"/>
+      <button class="search-btn" onclick="searchCity()">Search</button>
+      <div id="suggestions"></div>
+    </div>
+  </div>
+  <div id="recent-bar" style="display:none"></div>
+  <div class="corner-stats">
+    <div class="stat-chip"><strong>195</strong>Countries</div>
+  </div>
+</div>
+
+<!-- PAGE 2: WEATHER -->
+<div class="page hidden" id="weather-page">
+  <div class="weather-bg" id="weather-bg"></div>
+  <canvas id="wx-canvas"></canvas>
+  <div id="wx-fx"></div>
+  <div class="weather-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:20px">
+      <button class="back-btn" style="margin-bottom:0" onclick="showHome()">← Back to map</button>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button class="star-btn" id="star-btn" onclick="toggleFav()" title="Save to favourites">Save</button>
+        <button class="share-btn" id="share-btn" onclick="shareWeather()" title="Share forecast">Share</button>
+        <div class="unit-toggle">
+          <button class="unit-btn active" id="u-c" onclick="setUnit('C')">°C</button>
+          <button class="unit-btn" id="u-f" onclick="setUnit('F')">°F</button>
+          <button class="unit-btn" id="u-k" onclick="setUnit('K')">K</button>
+        </div>
+      </div>
+    </div>
+    <div id="alerts-wrap"></div>
+    <div id="weather-data"></div>
+  </div>
+</div>
+
+<!-- PAGE 3: COMPARE -->
+<div class="page hidden" id="compare-page">
+  <div class="compare-bg"></div>
+  <div class="compare-content">
+    <div class="compare-header">
+      <div>
+        <div class="compare-title">Compare <span>Cities</span></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">Side-by-side weather comparison</div>
+      </div>
+      <button class="back-btn" style="margin-bottom:0" onclick="showHome()">← Back to map</button>
+    </div>
+    <div class="compare-search-row">
+      <div class="cs-box" id="cs-box-1">
+        <span class="cs-label">City A</span>
+        <input id="cs-input-1" type="text" placeholder="Search first city…" autocomplete="off"
+               oninput="csSuggest(1,this.value)" onkeydown="if(event.key==='Enter')csSearch(1)"/>
+        <button class="cs-btn" onclick="csSearch(1)">Go</button>
+        <div class="cs-sug" id="cs-sug-1"></div>
+      </div>
+      <div class="cs-box" id="cs-box-2">
+        <span class="cs-label">City B</span>
+        <input id="cs-input-2" type="text" placeholder="Search second city…" autocomplete="off"
+               oninput="csSuggest(2,this.value)" onkeydown="if(event.key==='Enter')csSearch(2)"/>
+        <button class="cs-btn" onclick="csSearch(2)">Go</button>
+        <div class="cs-sug" id="cs-sug-2"></div>
+      </div>
+    </div>
+    <div class="compare-panels">
+      <div class="cp" id="cp-1"><div class="cp-empty"><div class="cp-empty-icon"></div><div class="cp-empty-text">Search City A above</div></div></div>
+      <div class="cp" id="cp-2"><div class="cp-empty"><div class="cp-empty-icon"></div><div class="cp-empty-text">Search City B above</div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE 4: FAVOURITES -->
+<div class="page hidden" id="favs-page">
+  <div class="favs-page-bg"></div>
+  <div class="favs-page-content" id="favs-page-content">
+    <div class="favs-page-header">
+      <div>
+        <div class="favs-page-title"> My <span>Favourites</span></div>
+        <div class="favs-page-subtitle">Your saved cities with live weather</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <button class="favs-clear-btn" onclick="clearAllFavs()">Clear all</button>
+        <button class="back-btn" style="margin-bottom:0" onclick="showHome()">← Back to map</button>
+      </div>
+    </div>
+    <div id="favs-grid-wrap"></div>
+    <div class="fav-last-updated" id="favs-last-updated"></div>
+  </div>
+</div>
+
+<!-- Toasts -->
+<div id="toast"></div>
+<div id="share-toast"><span></span><span id="share-toast-msg">Copied to clipboard!</span></div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- SkyCast App -->
+<script src="app.js"></script>
+
+</body>
+</html>
